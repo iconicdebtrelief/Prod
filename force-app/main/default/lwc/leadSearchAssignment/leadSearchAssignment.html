@@ -1,0 +1,195 @@
+<template>
+    <lightning-card title="Lead Search & Assignment" icon-name="standard:lead">
+        <div class="slds-p-around_medium">
+
+            <!-- Search Section -->
+            <div class="slds-grid slds-wrap slds-gutters slds-m-bottom_small">
+                <!-- Search Input -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_6-of-12">
+                    <lightning-input
+                        type="text"
+                        label="Search Leads"
+                        placeholder="Enter Name, Email, or Phone..."
+                        value={searchTerm}
+                        onchange={handleSearchChange}
+                        onkeydown={handleKeyDown}>
+                    </lightning-input>
+                </div>
+
+                <!-- Search and Clear Buttons -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12 slds-align-bottom">
+                    <lightning-button
+                        variant="brand"
+                        label="Search"
+                        onclick={handleSearch}
+                        disabled={isLoading}
+                        class="slds-m-right_small">
+                    </lightning-button>
+                    <lightning-button
+                        variant="neutral"
+                        label="Clear"
+                        onclick={handleClear}
+                        disabled={isLoading}>
+                    </lightning-button>
+                </div>
+
+                <!-- Records per Page Dropdown -->
+                <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12 slds-align-bottom slds-text-align_right">
+                    <lightning-combobox
+                        name="pageSize"
+                        label="Records per page"
+                        value={pageSize}
+                        options={pageSizeOptions}
+                        onchange={handlePageSizeChange}
+                        class="slds-m-top_none">
+                    </lightning-combobox>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-p-vertical_large">
+                    <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+                </div>
+            </template>
+
+            <!-- Results Section -->
+            <template if:true={totalRecords}>
+                <div class="slds-m-top_large">
+                    <!-- Header -->
+                    <div class="slds-m-bottom_small">
+                        <h3 class="slds-text-heading_small">Search Results</h3>
+                        <p class="slds-text-body_small slds-text-color_weak">
+                            {paginationInfo}
+                        </p>
+                    </div>
+
+                    <!-- Lead Table -->
+                    <div class="slds-table_col-bordered slds-table_striped">
+                        <table class="slds-table slds-table_cell-buffer">
+                            <thead>
+                                <tr class="slds-line-height_reset">
+                                    <th><div class="slds-truncate">Lead ID</div></th>
+                                    <th><div class="slds-truncate">Name</div></th>
+                                    <th><div class="slds-truncate">Phone</div></th>
+                                    <th><div class="slds-truncate">Email</div></th>
+                                    <th><div class="slds-truncate">Lead Status</div></th>
+                                    <th><div class="slds-truncate">Lead Phase</div></th>
+                                    <th><div class="slds-truncate">Owner</div></th>
+                                    <th><div class="slds-truncate">Assignment Reason</div></th>
+                                    <th><div class="slds-truncate">Action</div></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={leads} for:item="lead">
+                                    <tr key={lead.Id}>
+                                        <td><div class="slds-truncate">{lead.Id}</div></td>
+                                        <td><div class="slds-truncate">{lead.Name}</div></td>
+                                        <td><div class="slds-truncate">{lead.maskedPhone}</div></td>
+                                        <td><div class="slds-truncate">{lead.maskedEmail}</div></td>
+                                        <td><div class="slds-truncate">{lead.Status}</div></td>
+                                        <td><div class="slds-truncate">{lead.LeadPhase__c}</div></td>
+                                        <td><div class="slds-truncate">{lead.OwnerName}</div></td>
+                                        <td>
+                                            <lightning-combobox
+                                                name="assignmentReason"
+                                                value={lead.selectedAssignmentReason}
+                                                options={assignmentReasonOptions}
+                                                onchange={handleAssignmentReasonChange}
+                                                data-lead-id={lead.Id}
+                                                disabled={lead.disableReasonPicklist}
+                                                variant="label-hidden"
+                                                placeholder="Select reason...">
+                                            </lightning-combobox>
+                                        </td>
+                                        <td>
+                                            <template if:true={lead.showAssignButton}>
+                                                <lightning-button
+                                                    variant="success"
+                                                    label="Assign"
+                                                    onclick={handleAssignLead}
+                                                    data-lead-id={lead.Id}
+                                                    size="small">
+                                                </lightning-button>
+                                            </template>
+                                            <template if:true={lead.showOpenButton}>
+                                                <lightning-button
+                                                    variant="brand"
+                                                    label="Open"
+                                                    onclick={handleOpenLead}
+                                                    data-lead-id={lead.Id}
+                                                    size="small">
+                                                </lightning-button>
+                                            </template>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <template if:true={showPagination}>
+                        <div class="slds-m-top_medium">
+                            <div class="slds-grid slds-wrap slds-gutters">
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_6-of-12">
+                                    <div class="slds-button-group" role="group">
+                                        <lightning-button
+                                            variant="neutral"
+                                            label="First"
+                                            onclick={handleFirstPage}
+                                            disabled={isFirstPage}
+                                            size="small">
+                                        </lightning-button>
+                                        <lightning-button
+                                            variant="neutral"
+                                            label="Previous"
+                                            onclick={handlePreviousPage}
+                                            disabled={isFirstPage}
+                                            size="small">
+                                        </lightning-button>
+                                        <lightning-button
+                                            variant="neutral"
+                                            label="Next"
+                                            onclick={handleNextPage}
+                                            disabled={isLastPage}
+                                            size="small">
+                                        </lightning-button>
+                                        <lightning-button
+                                            variant="neutral"
+                                            label="Last"
+                                            onclick={handleLastPage}
+                                            disabled={isLastPage}
+                                            size="small">
+                                        </lightning-button>
+                                    </div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-1 slds-medium-size_6-of-12">
+                                    <div class="slds-text-body_small slds-text-color_weak slds-text-align_right slds-p-top_xx-small">
+                                        Page {currentPage} of {totalPages}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- No Results -->
+            <template if:false={totalRecords}>
+                <template if:false={isLoading}>
+                    <div class="slds-align_absolute-center slds-p-vertical_large">
+                        <div class="slds-text-color_weak">
+                            <template if:true={searchTerm}>
+                                No leads found for "{searchTerm}". Try different search terms.
+                            </template>
+                            <template if:false={searchTerm}>
+                                Enter search terms to find leads.
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>
